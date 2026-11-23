@@ -1,0 +1,21 @@
+# 依赖
+node_modules/
+package-lock.json.bak
+
+# 运行时数据库（启动时自动创建并写入预置数据）
+server/data.db
+
+# IDE
+.idea/
+*.iml
+.vscode/
+
+# 日志与系统文件
+*.log
+npm-debug.log*
+.DS_Store
+Thumbs.db
+
+# 环境变量
+.env
+.env.local

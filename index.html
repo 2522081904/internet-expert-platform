@@ -1,0 +1,592 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>管理控制台 - 互联网专家服务平台</title>
+    <link rel="stylesheet" href="https://cdn.bootcdn.net/ajax/libs/element-ui/2.15.13/theme-chalk/index.css">
+    <script src="https://cdn.bootcdn.net/ajax/libs/vue/2.6.14/vue.min.js"></script>
+    <script src="https://cdn.bootcdn.net/ajax/libs/element-ui/2.15.13/index.min.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { background: #f5f7fa; }
+        .el-aside { background: #2E3B4E !important; color: #fff; }
+        .el-menu { background: #2E3B4E !important; border-right: 0; }
+        .el-menu-item {
+          color: #fff !important;
+          height: 50px !important;
+          line-height: 50px !important;
+          cursor: pointer !important;
+          transition: background .2s;
+        }
+        .el-menu-item:hover { background: #409EFF !important; }
+        .el-menu-item.is-active { background: #409EFF !important; }
+        .top-bar {
+          height: 60px;
+          background: #fff;
+          border-bottom: 1px solid #eee;
+          display: flex;
+          align-items: center;
+          justify-content: flex-end;
+          padding-right: 20px;
+        }
+        .user-info { font-size: 14px; color: #666; margin-right: 15px; }
+        .logout-btn { cursor: pointer; color: #f56c6c; }
+        .main-wrap { padding: 20px; }
+        h3 { font-size: 20px; color: #333; margin-bottom: 15px; }
+        .el-card { border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.05); }
+        .el-button { border-radius: 4px; }
+        .el-table th { background: #f8f9fb !important; }
+        .el-button, .el-table__row, .el-menu-item { cursor: pointer !important; }
+        .fade-in {
+          animation: fadeIn 0.35s ease-out;
+        }
+        @keyframes fadeIn {
+          from { opacity: 0; transform: translateY(8px); }
+          to   { opacity: 1; transform: translateY(0); }
+        }
+        .main-box {
+          text-align: center;
+          margin-top: 160px;
+        }
+        .main-box h1 {
+          font-size: 34px;
+          color: #333;
+          margin-bottom: 20px;
+        }
+        .main-box h3 {
+          font-size: 16px;
+          color: #666;
+        }
+    </style>
+<base target="_blank">
+</head>
+<body>
+<div id="app">
+    <el-container style="height:100vh">
+        <el-aside width="220px">
+            <div style="text-align:center;line-height:60px;color:#fff;font-weight:bold;border-bottom:1px solid #4a5c75">
+                专家服务平台
+            </div>
+            <el-menu :default-active="activeMenu" @select="handleMenuSelect">
+                <el-menu-item index="home">首页</el-menu-item>
+                <el-menu-item index="member">会员管理</el-menu-item>
+                <el-menu-item index="expert">专家管理</el-menu-item>
+                <el-menu-item index="topic">主题管理</el-menu-item>
+                <el-menu-item index="order">订单管理</el-menu-item>
+            </el-menu>
+        </el-aside>
+        <el-container>
+            <div class="top-bar">
+                <span class="user-info">欢迎：管理员</span>
+                <span class="logout-btn" @click="logout">退出登录</span>
+            </div>
+            <el-main>
+                <!-- 首页 -->
+                <div v-if="activeMenu === 'home'" class="main-box fade-in">
+                    <h1>管理控制台</h1>
+                    <h3>请点击左侧菜单操作</h3>
+                </div>
+
+                <!-- 会员管理 -->
+                <member-page v-if="activeMenu === 'member'" class="fade-in"></member-page>
+
+                <!-- 专家管理 -->
+                <expert-page v-if="activeMenu === 'expert'" class="fade-in"></expert-page>
+
+                <!-- 主题管理 -->
+                <topic-page v-if="activeMenu === 'topic'" class="fade-in"></topic-page>
+
+                <!-- 订单管理 -->
+                <order-page v-if="activeMenu === 'order'" class="fade-in"></order-page>
+            </el-main>
+        </el-container>
+    </el-container>
+</div>
+
+<script>
+    const API_BASE = 'http://localhost:3000';
+
+    // ===== 会员管理组件 =====
+    Vue.component('member-page', {
+        template: `
+        <div class="main-wrap">
+            <h3>会员管理</h3>
+            <el-card v-loading="loading">
+                <el-form inline :model="searchForm">
+                    <el-form-item label="会员名称"><el-input v-model="searchForm.name" placeholder="请输入会员名称"></el-input></el-form-item>
+                    <el-form-item label="状态">
+                        <el-select v-model="searchForm.status"><el-option label="全部" value=""></el-option><el-option label="正常" value="正常"></el-option><el-option label="禁用" value="禁用"></el-option></el-select>
+                    </el-form-item>
+                    <el-form-item>
+                        <el-button type="primary" @click="getList">查询</el-button>
+                        <el-button @click="resetSearch">重置</el-button>
+                        <el-button type="success" @click="openAdd">新增会员</el-button>
+                    </el-form-item>
+                </el-form>
+                <el-table :data="list" border style="width:100%;margin-top:10px;">
+                    <el-table-column prop="id" label="ID" width="60"></el-table-column>
+                    <el-table-column prop="username" label="账号"></el-table-column>
+                    <el-table-column prop="name" label="会员名称"></el-table-column>
+                    <el-table-column prop="phone" label="电话"></el-table-column>
+                    <el-table-column prop="status" label="状态" width="80"></el-table-column>
+                    <el-table-column label="操作" width="280">
+                        <template slot-scope="s">
+                            <el-button type="primary" size="mini" @click="openEdit(s.row)">编辑</el-button>
+                            <el-button type="warning" size="mini" @click="toggleStatus(s.row)">{{s.row.status=='正常'?'禁用':'启用'}}</el-button>
+                            <el-button type="danger" size="mini" @click="del(s.row.id)">删除</el-button>
+                        </template>
+                    </el-table-column>
+                </el-table>
+            </el-card>
+            <el-dialog title="会员信息" :visible.sync="dialogVisible" width="500px">
+                <el-form :model="form" label-width="80px">
+                    <el-form-item label="账号"><el-input v-model="form.username" placeholder="如 member001"></el-input></el-form-item>
+                    <el-form-item label="密码"><el-input v-model="form.password" placeholder="默认 123456"></el-input></el-form-item>
+                    <el-form-item label="名称"><el-input v-model="form.name"></el-input></el-form-item>
+                    <el-form-item label="电话"><el-input v-model="form.phone"></el-input></el-form-item>
+                </el-form>
+                <div slot="footer" class="dialog-footer">
+                    <el-button @click="dialogVisible=false">取消</el-button>
+                    <el-button type="primary" @click="save">保存</el-button>
+                </div>
+            </el-dialog>
+        </div>`,
+        data() {
+            return {
+                loading: false,
+                searchForm: { name: '', status: '' },
+                list: [],
+                dialogVisible: false,
+                form: { id: '', username: '', password: '', name: '', phone: '', status: '正常' },
+                isEdit: false
+            }
+        },
+        created() { this.getList(); },
+        methods: {
+            async getList() {
+                this.loading = true;
+                try {
+                    const params = new URLSearchParams();
+                    if (this.searchForm.name) params.append('name', this.searchForm.name);
+                    if (this.searchForm.status) params.append('status', this.searchForm.status);
+                    const res = await fetch(`${API_BASE}/api/members?${params.toString()}`);
+                    const json = await res.json();
+                    if (json.code === 0) this.list = json.data;
+                    else this.$message.error(json.msg || '查询失败');
+                } catch (e) { this.$message.error('网络错误，请检查后端服务'); }
+                this.loading = false;
+            },
+            resetSearch() { this.searchForm = { name: '', status: '' }; this.getList(); },
+            openAdd() { this.isEdit = false; this.form = { id: '', username: '', password: '123456', name: '', phone: '', status: '正常' }; this.dialogVisible = true; },
+            openEdit(row) { this.isEdit = true; this.form = { ...row }; this.dialogVisible = true; },
+            async save() {
+                if (!this.form.username || !this.form.name) { this.$message.warning('账号和名称不能为空'); return; }
+                try {
+                    const url = this.isEdit ? `${API_BASE}/api/members/${this.form.id}` : `${API_BASE}/api/members`;
+                    const method = this.isEdit ? 'PUT' : 'POST';
+                    const res = await fetch(url, { method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(this.form) });
+                    const json = await res.json();
+                    if (json.code === 0) { this.$message.success('保存成功'); this.dialogVisible = false; this.getList(); }
+                    else this.$message.error(json.msg || '保存失败');
+                } catch (e) { this.$message.error('网络错误，请检查后端服务'); }
+            },
+            async toggleStatus(row) {
+                const newStatus = row.status == '正常' ? '禁用' : '正常';
+                try {
+                    const res = await fetch(`${API_BASE}/api/members/${row.id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ...row, status: newStatus }) });
+                    const json = await res.json();
+                    if (json.code === 0) { this.$message.success('状态已切换'); this.getList(); }
+                    else this.$message.error(json.msg || '操作失败');
+                } catch (e) { this.$message.error('网络错误'); }
+            },
+            del(id) {
+                this.$confirm('确定删除？').then(async () => {
+                    try {
+                        const res = await fetch(`${API_BASE}/api/members/${id}`, { method: 'DELETE' });
+                        const json = await res.json();
+                        if (json.code === 0) { this.$message.success('删除成功'); this.getList(); }
+                        else this.$message.error(json.msg || '删除失败');
+                    } catch (e) { this.$message.error('网络错误'); }
+                });
+            }
+        }
+    });
+
+    // ===== 专家管理组件 =====
+    Vue.component('expert-page', {
+        template: `
+        <div class="main-wrap">
+            <h3>专家管理</h3>
+            <el-card v-loading="loading">
+                <el-form inline :model="searchForm">
+                    <el-form-item label="专家姓名"><el-input v-model="searchForm.name" placeholder="请输入专家姓名"></el-input></el-form-item>
+                    <el-form-item label="状态">
+                        <el-select v-model="searchForm.status"><el-option label="全部" value=""></el-option><el-option label="正常" value="正常"></el-option><el-option label="禁用" value="禁用"></el-option></el-select>
+                    </el-form-item>
+                    <el-form-item>
+                        <el-button type="primary" @click="getList">查询</el-button>
+                        <el-button @click="resetSearch">重置</el-button>
+                        <el-button type="success" @click="openAdd">新增专家</el-button>
+                    </el-form-item>
+                </el-form>
+                <el-table :data="list" border style="width:100%;margin-top:10px;">
+                    <el-table-column prop="id" label="ID" width="60"></el-table-column>
+                    <el-table-column prop="username" label="账号"></el-table-column>
+                    <el-table-column prop="name" label="姓名"></el-table-column>
+                    <el-table-column prop="phone" label="电话"></el-table-column>
+                    <el-table-column prop="work_years" label="工作年限"></el-table-column>
+                    <el-table-column prop="institution" label="任职机构"></el-table-column>
+                    <el-table-column prop="position" label="职位"></el-table-column>
+                    <el-table-column prop="city" label="常驻城市"></el-table-column>
+                    <el-table-column prop="specialty" label="擅长领域"></el-table-column>
+                    <el-table-column prop="status" label="状态" width="80"></el-table-column>
+                    <el-table-column label="操作" width="280">
+                        <template slot-scope="s">
+                            <el-button type="primary" size="mini" @click="openEdit(s.row)">编辑</el-button>
+                            <el-button type="warning" size="mini" @click="toggleStatus(s.row)">{{s.row.status=='正常'?'禁用':'启用'}}</el-button>
+                            <el-button type="danger" size="mini" @click="del(s.row.id)">删除</el-button>
+                        </template>
+                    </el-table-column>
+                </el-table>
+            </el-card>
+            <el-dialog title="专家信息" :visible.sync="dialogVisible" width="600px">
+                <el-form :model="form" label-width="100px">
+                    <el-form-item label="账号"><el-input v-model="form.username" placeholder="如 expert001"></el-input></el-form-item>
+                    <el-form-item label="密码"><el-input v-model="form.password" placeholder="默认 123456"></el-input></el-form-item>
+                    <el-form-item label="姓名"><el-input v-model="form.name"></el-input></el-form-item>
+                    <el-form-item label="电话"><el-input v-model="form.phone"></el-input></el-form-item>
+                    <el-form-item label="工作年限"><el-input v-model="form.work_years" placeholder="如 10年"></el-input></el-form-item>
+                    <el-form-item label="任职机构"><el-input v-model="form.institution" placeholder="如 农业大学"></el-input></el-form-item>
+                    <el-form-item label="职位"><el-input v-model="form.position" placeholder="如 教授"></el-input></el-form-item>
+                    <el-form-item label="常驻城市"><el-input v-model="form.city" placeholder="如 北京"></el-input></el-form-item>
+                    <el-form-item label="擅长领域"><el-input v-model="form.specialty" placeholder="如 农业技术、土壤改良"></el-input></el-form-item>
+                    <el-form-item label="个人简介"><el-input v-model="form.intro" type="textarea" rows="3"></el-input></el-form-item>
+                </el-form>
+                <div slot="footer" class="dialog-footer">
+                    <el-button @click="dialogVisible=false">取消</el-button>
+                    <el-button type="primary" @click="save">保存</el-button>
+                </div>
+            </el-dialog>
+        </div>`,
+        data() {
+            return {
+                loading: false,
+                searchForm: { name: '', status: '' },
+                list: [],
+                dialogVisible: false,
+                form: { id: '', username: '', password: '', name: '', phone: '', work_years: '', institution: '', position: '', city: '', specialty: '', intro: '', status: '正常' },
+                isEdit: false
+            }
+        },
+        created() { this.getList(); },
+        methods: {
+            async getList() {
+                this.loading = true;
+                try {
+                    const params = new URLSearchParams();
+                    if (this.searchForm.name) params.append('name', this.searchForm.name);
+                    if (this.searchForm.status) params.append('status', this.searchForm.status);
+                    const res = await fetch(`${API_BASE}/api/experts?${params.toString()}`);
+                    const json = await res.json();
+                    if (json.code === 0) this.list = json.data;
+                    else this.$message.error(json.msg || '查询失败');
+                } catch (e) { this.$message.error('网络错误，请检查后端服务'); }
+                this.loading = false;
+            },
+            resetSearch() { this.searchForm = { name: '', status: '' }; this.getList(); },
+            openAdd() { this.isEdit = false; this.form = { id: '', username: '', password: '123456', name: '', phone: '', work_years: '', institution: '', position: '', city: '', specialty: '', intro: '', status: '正常' }; this.dialogVisible = true; },
+            openEdit(row) { this.isEdit = true; this.form = { ...row }; this.dialogVisible = true; },
+            async save() {
+                if (!this.form.username || !this.form.name) { this.$message.warning('账号和姓名不能为空'); return; }
+                try {
+                    const url = this.isEdit ? `${API_BASE}/api/experts/${this.form.id}` : `${API_BASE}/api/experts`;
+                    const method = this.isEdit ? 'PUT' : 'POST';
+                    const res = await fetch(url, { method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(this.form) });
+                    const json = await res.json();
+                    if (json.code === 0) { this.$message.success('保存成功'); this.dialogVisible = false; this.getList(); }
+                    else this.$message.error(json.msg || '保存失败');
+                } catch (e) { this.$message.error('网络错误，请检查后端服务'); }
+            },
+            async toggleStatus(row) {
+                const newStatus = row.status == '正常' ? '禁用' : '正常';
+                try {
+                    const res = await fetch(`${API_BASE}/api/experts/${row.id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ...row, status: newStatus }) });
+                    const json = await res.json();
+                    if (json.code === 0) { this.$message.success('状态已切换'); this.getList(); }
+                    else this.$message.error(json.msg || '操作失败');
+                } catch (e) { this.$message.error('网络错误'); }
+            },
+            del(id) {
+                this.$confirm('确定删除？').then(async () => {
+                    try {
+                        const res = await fetch(`${API_BASE}/api/experts/${id}`, { method: 'DELETE' });
+                        const json = await res.json();
+                        if (json.code === 0) { this.$message.success('删除成功'); this.getList(); }
+                        else this.$message.error(json.msg || '删除失败');
+                    } catch (e) { this.$message.error('网络错误'); }
+                });
+            }
+        }
+    });
+
+    // ===== 主题管理组件 =====
+    Vue.component('topic-page', {
+        template: `
+        <div class="main-wrap">
+            <h3>主题管理</h3>
+            <el-card v-loading="loading">
+                <el-form inline :model="searchForm">
+                    <el-form-item label="标题"><el-input v-model="searchForm.title" placeholder="主题标题"></el-input></el-form-item>
+                    <el-form-item>
+                        <el-button type="primary" @click="getList">查询</el-button>
+                        <el-button @click="resetSearch">重置</el-button>
+                        <el-button type="success" @click="openAdd">新增主题</el-button>
+                    </el-form-item>
+                </el-form>
+                <el-table :data="list" border style="width:100%;margin-top:10px;">
+                    <el-table-column prop="title" label="主题标题"></el-table-column>
+                    <el-table-column prop="expert" label="专家姓名"></el-table-column>
+                    <el-table-column prop="status" label="状态"></el-table-column>
+                    <el-table-column label="操作" width="280">
+                        <template slot-scope="s">
+                            <el-button type="primary" size="mini" @click="openEdit(s.row)">编辑</el-button>
+                            <el-button type="success" size="mini" @click="togglePublish(s.row)">{{s.row.status==='草稿'?'发布':'撤回'}}</el-button>
+                            <el-button type="danger" size="mini" @click="del(s.row.id)">删除</el-button>
+                        </template>
+                    </el-table-column>
+                </el-table>
+            </el-card>
+            <el-dialog title="主题信息" :visible.sync="dialogVisible" width="500px">
+                <el-form :model="form" label-width="80px">
+                    <el-form-item label="标题"><el-input v-model="form.title"></el-input></el-form-item>
+                    <el-form-item label="专家">
+                        <el-select v-model="form.expert" placeholder="请选择专家" style="width:100%">
+                            <el-option v-for="e in expertList" :key="e.id" :label="e.name + ' (' + e.institution + ')'" :value="e.name"></el-option>
+                        </el-select>
+                    </el-form-item>
+                </el-form>
+                <div slot="footer">
+                    <el-button @click="dialogVisible=false">取消</el-button>
+                    <el-button type="primary" @click="save">保存</el-button>
+                </div>
+            </el-dialog>
+        </div>`,
+        data() {
+            return {
+                loading: false,
+                searchForm: { title: '' },
+                list: [],
+                dialogVisible: false,
+                form: { id: '', title: '', expert: '', status: '草稿' },
+                expertList: [],
+                isEdit: false
+            }
+        },
+        created() { this.getList(); this.loadExperts(); },
+        methods: {
+            async getList() {
+                this.loading = true;
+                try {
+                    const params = new URLSearchParams();
+                    if (this.searchForm.title) params.append('title', this.searchForm.title);
+                    const res = await fetch(`${API_BASE}/api/topics?${params.toString()}`);
+                    const json = await res.json();
+                    if (json.code === 0) this.list = json.data;
+                    else this.$message.error(json.msg || '查询失败');
+                } catch (e) { this.$message.error('网络错误，请检查后端服务'); }
+                this.loading = false;
+            },
+            resetSearch() { this.searchForm = { title: '' }; this.getList(); },
+            async loadExperts() {
+                try {
+                    const res = await fetch(`${API_BASE}/api/experts?status=正常`);
+                    const json = await res.json();
+                    if (json.code === 0) this.expertList = json.data;
+                } catch (e) { console.error('加载专家失败', e); }
+            },
+            openAdd() { this.isEdit = false; this.form = { id: '', title: '', expert: '', status: '草稿' }; this.dialogVisible = true; },
+            openEdit(row) { this.isEdit = true; this.form = { ...row }; this.dialogVisible = true; },
+            async save() {
+                if (!this.form.title || !this.form.expert) { this.$message.warning('标题和专家不能为空'); return; }
+                try {
+                    const url = this.isEdit ? `${API_BASE}/api/topics/${this.form.id}` : `${API_BASE}/api/topics`;
+                    const method = this.isEdit ? 'PUT' : 'POST';
+                    const res = await fetch(url, { method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(this.form) });
+                    const json = await res.json();
+                    if (json.code === 0) { this.$message.success('保存成功'); this.dialogVisible = false; this.getList(); }
+                    else this.$message.error(json.msg || '保存失败');
+                } catch (e) { this.$message.error('网络错误，请检查后端服务'); }
+            },
+            async togglePublish(row) {
+                const newStatus = row.status === '草稿' ? '已发布' : '草稿';
+                try {
+                    const res = await fetch(`${API_BASE}/api/topics/${row.id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ...row, status: newStatus }) });
+                    const json = await res.json();
+                    if (json.code === 0) { this.$message.success('状态已更新'); this.getList(); }
+                    else this.$message.error(json.msg || '操作失败');
+                } catch (e) { this.$message.error('网络错误'); }
+            },
+            del(id) {
+                this.$confirm('确定删除？').then(async () => {
+                    try {
+                        const res = await fetch(`${API_BASE}/api/topics/${id}`, { method: 'DELETE' });
+                        const json = await res.json();
+                        if (json.code === 0) { this.$message.success('删除成功'); this.getList(); }
+                        else this.$message.error(json.msg || '删除失败');
+                    } catch (e) { this.$message.error('网络错误'); }
+                });
+            }
+        }
+    });
+
+    // ===== 订单管理组件 =====
+    Vue.component('order-page', {
+        template: `
+        <div class="main-wrap">
+            <h3>订单管理</h3>
+            <el-card v-loading="loading">
+                <el-form inline :model="searchForm">
+                    <el-form-item label="订单号"><el-input v-model="searchForm.no" placeholder="订单号"></el-input></el-form-item>
+                    <el-form-item label="会员名"><el-input v-model="searchForm.user" placeholder="会员名"></el-input></el-form-item>
+                    <el-form-item>
+                        <el-button type="primary" @click="getList">查询</el-button>
+                        <el-button @click="resetSearch">重置</el-button>
+                        <el-button type="success" @click="openAdd">新增订单</el-button>
+                    </el-form-item>
+                </el-form>
+                <el-table :data="list" border style="width:100%;margin-top:10px;">
+                    <el-table-column prop="no" label="订单号"></el-table-column>
+                    <el-table-column prop="user" label="会员"></el-table-column>
+                    <el-table-column prop="topic" label="主题"></el-table-column>
+                    <el-table-column prop="money" label="金额"></el-table-column>
+                    <el-table-column prop="status" label="状态"></el-table-column>
+                    <el-table-column label="操作">
+                        <template slot-scope="s">
+                            <el-button type="success" size="mini" @click="finish(s.row)" v-if="s.row.status=='待完成'">标记完成</el-button>
+                            <el-button type="danger" size="mini" @click="del(s.row.id)">删除</el-button>
+                        </template>
+                    </el-table-column>
+                </el-table>
+            </el-card>
+            <el-dialog title="新增订单" :visible.sync="dialogVisible" width="500px">
+                <el-form :model="form" label-width="80px">
+                    <el-form-item label="会员">
+                        <el-select v-model="form.user" placeholder="请选择会员" style="width:100%">
+                            <el-option v-for="m in memberList" :key="m.id" :label="m.name" :value="m.name"></el-option>
+                        </el-select>
+                    </el-form-item>
+                    <el-form-item label="主题">
+                        <el-select v-model="form.topic" placeholder="请选择主题" style="width:100%">
+                            <el-option v-for="t in topicList" :key="t.id" :label="t.title" :value="t.title"></el-option>
+                        </el-select>
+                    </el-form-item>
+                    <el-form-item label="金额">
+                        <el-input v-model="form.money" placeholder="请输入金额"></el-input>
+                    </el-form-item>
+                </el-form>
+                <div slot="footer" class="dialog-footer">
+                    <el-button @click="dialogVisible=false">取消</el-button>
+                    <el-button type="primary" @click="save">保存</el-button>
+                </div>
+            </el-dialog>
+        </div>`,
+        data() {
+            return {
+                loading: false,
+                searchForm: { no: '', user: '' },
+                list: [],
+                dialogVisible: false,
+                form: { user: '', topic: '', money: '' },
+                memberList: [],
+                topicList: []
+            }
+        },
+        created() { this.getList(); this.loadMembers(); this.loadTopics(); },
+        methods: {
+            async getList() {
+                this.loading = true;
+                try {
+                    const params = new URLSearchParams();
+                    if (this.searchForm.no) params.append('no', this.searchForm.no);
+                    if (this.searchForm.user) params.append('user', this.searchForm.user);
+                    const res = await fetch(`${API_BASE}/api/orders?${params.toString()}`);
+                    const json = await res.json();
+                    if (json.code === 0) this.list = json.data;
+                    else this.$message.error(json.msg || '查询失败');
+                } catch (e) { this.$message.error('网络错误，请检查后端服务'); }
+                this.loading = false;
+            },
+            resetSearch() { this.searchForm = { no: '', user: '' }; this.getList(); },
+            openAdd() { this.form = { user: '', topic: '', money: '' }; this.dialogVisible = true; },
+            async loadMembers() {
+                try {
+                    const res = await fetch(`${API_BASE}/api/members`);
+                    const json = await res.json();
+                    if (json.code === 0) this.memberList = json.data;
+                } catch (e) { console.error('加载会员失败', e); }
+            },
+            async loadTopics() {
+                try {
+                    const res = await fetch(`${API_BASE}/api/topics`);
+                    const json = await res.json();
+                    if (json.code === 0) this.topicList = json.data;
+                } catch (e) { console.error('加载主题失败', e); }
+            },
+            async save() {
+                if (!this.form.user || !this.form.topic || !this.form.money) { this.$message.warning('请填写完整信息'); return; }
+                try {
+                    const res = await fetch(`${API_BASE}/api/orders`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(this.form) });
+                    const json = await res.json();
+                    if (json.code === 0) { this.$message.success('新增成功，订单号：' + json.data.no); this.dialogVisible = false; this.getList(); }
+                    else this.$message.error(json.msg || '新增失败');
+                } catch (e) { this.$message.error('网络错误'); }
+            },
+            async finish(row) {
+                try {
+                    const res = await fetch(`${API_BASE}/api/orders/${row.id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ status: '已完成' }) });
+                    const json = await res.json();
+                    if (json.code === 0) { this.$message.success('订单已完成'); this.getList(); }
+                    else this.$message.error(json.msg || '操作失败');
+                } catch (e) { this.$message.error('网络错误'); }
+            },
+            del(id) {
+                this.$confirm('确定删除订单？').then(async () => {
+                    try {
+                        const res = await fetch(`${API_BASE}/api/orders/${id}`, { method: 'DELETE' });
+                        const json = await res.json();
+                        if (json.code === 0) { this.$message.success('删除成功'); this.getList(); }
+                        else this.$message.error(json.msg || '删除失败');
+                    } catch (e) { this.$message.error('网络错误'); }
+                });
+            }
+        }
+    });
+
+    // ===== 根实例 =====
+    new Vue({
+        el: '#app',
+        data() {
+            return { activeMenu: 'home' }
+        },
+        mounted() {
+            if (localStorage.getItem('loginRole') !== 'admin') {
+                location.href = 'login.html';
+            }
+        },
+        methods: {
+            handleMenuSelect(index) {
+                this.activeMenu = index;
+            },
+            logout() {
+                this.$confirm('确定退出登录？').then(() => {
+                    localStorage.removeItem('loginStatus');
+                    localStorage.removeItem('loginRole');
+                    localStorage.removeItem('loginUser');
+                    location.href = 'login.html';
+                });
+            }
+        }
+    });
+</script>
+</body>
+</html>

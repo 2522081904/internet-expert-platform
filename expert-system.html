@@ -1,0 +1,453 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>专家中心 - 互联网专家服务平台</title>
+    <link rel="stylesheet" href="https://cdn.bootcdn.net/ajax/libs/element-ui/2.15.13/theme-chalk/index.css">
+    <script src="https://cdn.bootcdn.net/ajax/libs/vue/2.6.14/vue.min.js"></script>
+    <script src="https://cdn.bootcdn.net/ajax/libs/element-ui/2.15.13/index.min.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { background: #f5f7fa; }
+        .el-aside { background: #2E3B4E !important; color: #fff; }
+        .el-menu { background: #2E3B4E !important; border-right: 0; }
+        .el-menu-item {
+          color: #fff !important;
+          height: 50px !important;
+          line-height: 50px !important;
+          cursor: pointer !important;
+          transition: background .2s;
+        }
+        .el-menu-item:hover { background: #409EFF !important; }
+        .el-menu-item.is-active { background: #409EFF !important; }
+        .top-bar {
+          height: 60px;
+          background: #fff;
+          border-bottom: 1px solid #eee;
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          padding: 0 20px;
+        }
+        .logo { font-size: 18px; font-weight: bold; color: #409EFF; }
+        .user-info { font-size: 14px; color: #666; }
+        .logout-btn { cursor: pointer; color: #f56c6c; margin-left: 15px; }
+        .main-wrap { padding: 20px; }
+        h3 { font-size: 20px; color: #333; margin-bottom: 15px; }
+        .el-card { border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,.05); margin-bottom: 15px; }
+        .badge {
+          background: #f56c6c;
+          color: #fff;
+          border-radius: 10px;
+          padding: 0 8px;
+          font-size: 12px;
+          margin-left: 5px;
+        }
+        .fade-in {
+          animation: fadeIn 0.35s ease-out;
+        }
+        @keyframes fadeIn {
+          from { opacity: 0; transform: translateY(8px); }
+          to   { opacity: 1; transform: translateY(0); }
+        }
+        .reply-box {
+          background: #f8f9fb;
+          padding: 15px;
+          border-radius: 8px;
+          margin-top: 10px;
+        }
+    </style>
+<base target="_blank">
+<base target="_blank">
+</head>
+<body>
+<div id="app">
+    <el-container style="height:100vh">
+        <el-aside width="220px">
+            <div style="text-align:center;line-height:60px;color:#fff;font-weight:bold;border-bottom:1px solid #4a5c75">
+                专家中心
+            </div>
+            <el-menu :default-active="active" @select="handleSelect">
+                <el-menu-item index="1">
+                    <i class="el-icon-s-home"></i>
+                    <span slot="title">工作台</span>
+                </el-menu-item>
+                <el-menu-item index="2">
+                    <i class="el-icon-s-comment"></i>
+                    <span slot="title">咨询回复</span>
+                    <span v-if="unreadCount > 0" class="badge">{{unreadCount}}</span>
+                </el-menu-item>
+                <el-menu-item index="3">
+                    <i class="el-icon-s-order"></i>
+                    <span slot="title">我的订单</span>
+                </el-menu-item>
+                <el-menu-item index="4">
+                    <i class="el-icon-document"></i>
+                    <span slot="title">我的主题</span>
+                </el-menu-item>
+                <el-menu-item index="5">
+                    <i class="el-icon-setting"></i>
+                    <span slot="title">个人信息</span>
+                </el-menu-item>
+            </el-menu>
+        </el-aside>
+        <el-container>
+            <div class="top-bar">
+                <span class="logo">互联网专家服务平台</span>
+                <div>
+                    <span class="user-info">欢迎：{{userInfo.name}} 专家</span>
+                    <span class="logout-btn" @click="logout">退出登录</span>
+                </div>
+            </div>
+            <el-main>
+                <!-- 工作台 -->
+                <div v-if="active === '1'" class="main-wrap fade-in">
+                    <h3>专家工作台</h3>
+                    <el-row :gutter="20">
+                        <el-col :span="8">
+                            <el-card>
+                                <div style="text-align:center">
+                                    <div style="font-size:36px;color:#409EFF;font-weight:bold">{{unreadCount}}</div>
+                                    <div style="color:#666;margin-top:8px">待回复咨询</div>
+                                </div>
+                            </el-card>
+                        </el-col>
+                        <el-col :span="8">
+                            <el-card>
+                                <div style="text-align:center">
+                                    <div style="font-size:36px;color:#67C23A;font-weight:bold">{{myOrderCount}}</div>
+                                    <div style="color:#666;margin-top:8px">服务订单</div>
+                                </div>
+                            </el-card>
+                        </el-col>
+                        <el-col :span="8">
+                            <el-card>
+                                <div style="text-align:center">
+                                    <div style="font-size:36px;color:#E6A23C;font-weight:bold">{{myTopicCount}}</div>
+                                    <div style="color:#666;margin-top:8px">发布主题</div>
+                                </div>
+                            </el-card>
+                        </el-col>
+                    </el-row>
+                    <el-card style="margin-top:20px">
+                        <div slot="header"><span>快捷操作</span></div>
+                        <el-button type="primary" @click="active='2'">查看待回复咨询</el-button>
+                        <el-button type="success" @click="active='3'">查看服务订单</el-button>
+                        <el-button type="warning" @click="active='4'">管理我的主题</el-button>
+                    </el-card>
+                </div>
+
+                <!-- 咨询回复 -->
+                <div v-if="active === '2'" class="main-wrap fade-in">
+                    <h3>会员咨询</h3>
+                    <el-card v-for="msg in consultMessages" :key="msg.id" style="margin-bottom:15px">
+                        <div style="display:flex;justify-content:space-between;align-items:center">
+                            <div>
+                                <span style="font-weight:bold">{{msg.from_name}}</span>
+                                <span style="color:#999;margin-left:10px">{{msg.create_time}}</span>
+                                <el-tag v-if="msg.is_read==0" type="danger" size="mini" style="margin-left:10px">未读</el-tag>
+                            </div>
+                            <el-button type="text" @click="replyTo=msg">回复</el-button>
+                        </div>
+                        <div style="margin-top:10px">
+                            <div style="font-weight:bold;color:#333">{{msg.title}}</div>
+                            <div style="color:#666;margin-top:5px">{{msg.content}}</div>
+                        </div>
+                        <div v-if="replyTo && replyTo.id === msg.id" class="reply-box">
+                            <el-input v-model="replyContent" type="textarea" rows="3" placeholder="请输入回复内容..."></el-input>
+                            <div style="margin-top:10px;text-align:right">
+                                <el-button size="small" @click="replyTo=null">取消</el-button>
+                                <el-button type="primary" size="small" @click="sendReply">发送回复</el-button>
+                            </div>
+                        </div>
+                    </el-card>
+                    <div v-if="consultMessages.length===0" style="text-align:center;color:#999;padding:40px">
+                        暂无待回复咨询
+                    </div>
+                </div>
+
+                <!-- 我的订单 -->
+                <div v-if="active === '3'" class="main-wrap fade-in">
+                    <h3>我的服务订单</h3>
+                    <el-card>
+                        <el-table :data="myOrders" border style="width:100%">
+                            <el-table-column prop="no" label="订单号"></el-table-column>
+                            <el-table-column prop="user" label="会员"></el-table-column>
+                            <el-table-column prop="topic" label="主题"></el-table-column>
+                            <el-table-column prop="money" label="金额"></el-table-column>
+                            <el-table-column prop="status" label="状态">
+                                <template slot-scope="s">
+                                    <el-tag :type="s.row.status=='待完成'?'warning':'success'">{{s.row.status}}</el-tag>
+                                </template>
+                            </el-table-column>
+                        </el-table>
+                    </el-card>
+                </div>
+
+                <!-- 我的主题 -->
+                <div v-if="active === '4'" class="main-wrap fade-in">
+                    <h3>我的主题</h3>
+                    <el-card>
+                        <el-button type="success" @click="openAddTopic" style="margin-bottom:15px">新增主题</el-button>
+                        <el-table :data="myTopics" border style="width:100%">
+                            <el-table-column prop="title" label="主题标题"></el-table-column>
+                            <el-table-column prop="status" label="状态">
+                                <template slot-scope="s">
+                                    <el-tag :type="s.row.status=='草稿'?'info':'success'">{{s.row.status}}</el-tag>
+                                </template>
+                            </el-table-column>
+                            <el-table-column label="操作" width="200">
+                                <template slot-scope="s">
+                                    <el-button type="success" size="mini" v-if="s.row.status=='草稿'" @click="publishTopic(s.row)">发布</el-button>
+                                    <el-button type="warning" size="mini" v-else @click="withdrawTopic(s.row)">撤回</el-button>
+                                    <el-button type="danger" size="mini" @click="delTopic(s.row.id)">删除</el-button>
+                                </template>
+                            </el-table-column>
+                        </el-table>
+                    </el-card>
+                    <el-dialog title="新增主题" :visible.sync="topicDialogVisible" width="500px">
+                        <el-form :model="topicForm" label-width="80px">
+                            <el-form-item label="标题"><el-input v-model="topicForm.title"></el-input></el-form-item>
+                        </el-form>
+                        <div slot="footer">
+                            <el-button @click="topicDialogVisible=false">取消</el-button>
+                            <el-button type="primary" @click="saveTopic">保存</el-button>
+                        </div>
+                    </el-dialog>
+                </div>
+
+                <!-- 个人信息 -->
+                <div v-if="active === '5'" class="main-wrap fade-in">
+                    <h3>个人信息</h3>
+                    <el-card style="max-width:700px">
+                        <el-form :model="editForm" label-width="100px">
+                            <el-form-item label="账号"><el-input v-model="userInfo.username" disabled></el-input></el-form-item>
+                            <el-form-item label="姓名"><el-input v-model="editForm.name"></el-input></el-form-item>
+                            <el-form-item label="电话"><el-input v-model="editForm.phone"></el-input></el-form-item>
+                            <el-form-item label="工作年限"><el-input v-model="editForm.work_years"></el-input></el-form-item>
+                            <el-form-item label="任职机构"><el-input v-model="editForm.institution"></el-input></el-form-item>
+                            <el-form-item label="职位"><el-input v-model="editForm.position"></el-input></el-form-item>
+                            <el-form-item label="常驻城市"><el-input v-model="editForm.city"></el-input></el-form-item>
+                            <el-form-item label="擅长领域"><el-input v-model="editForm.specialty"></el-input></el-form-item>
+                            <el-form-item label="个人简介"><el-input v-model="editForm.intro" type="textarea" rows="4"></el-input></el-form-item>
+                            <el-form-item>
+                                <el-button type="primary" @click="updateInfo">保存修改</el-button>
+                                <el-button @click="showPwdDialog=true">修改密码</el-button>
+                            </el-form-item>
+                        </el-form>
+                    </el-card>
+                    <el-dialog title="修改密码" :visible.sync="showPwdDialog" width="400px">
+                        <el-form :model="pwdForm" label-width="100px">
+                            <el-form-item label="原密码"><el-input v-model="pwdForm.oldPwd" type="password"></el-input></el-form-item>
+                            <el-form-item label="新密码"><el-input v-model="pwdForm.newPwd" type="password"></el-input></el-form-item>
+                            <el-form-item label="确认密码"><el-input v-model="pwdForm.confirmPwd" type="password"></el-input></el-form-item>
+                        </el-form>
+                        <div slot="footer">
+                            <el-button @click="showPwdDialog=false">取消</el-button>
+                            <el-button type="primary" @click="changePwd">确认修改</el-button>
+                        </div>
+                    </el-dialog>
+                </div>
+            </el-main>
+        </el-container>
+    </el-container>
+</div>
+<script>
+    const API_BASE = 'http://localhost:3000';
+    new Vue({
+        el: '#app',
+        data() {
+            return {
+                active: '1',
+                userInfo: {},
+                consultMessages: [],
+                myOrders: [],
+                myTopics: [],
+                unreadCount: 0,
+                myOrderCount: 0,
+                myTopicCount: 0,
+                replyTo: null,
+                replyContent: '',
+                topicDialogVisible: false,
+                topicForm: { title: '' },
+                editForm: {},
+                showPwdDialog: false,
+                pwdForm: { oldPwd: '', newPwd: '', confirmPwd: '' }
+            }
+        },
+        mounted() {
+            var raw = localStorage.getItem('loginUser');
+            if (!raw || JSON.parse(raw).role !== 'expert') {
+                location.href = 'login.html';
+                return;
+            }
+            this.userInfo = JSON.parse(raw);
+            this.editForm = { ...this.userInfo };
+            this.loadMessages();
+            this.loadOrders();
+            this.loadTopics();
+        },
+        methods: {
+            handleSelect(index) {
+                this.active = index;
+                if (index === '2') this.loadMessages();
+                if (index === '3') this.loadOrders();
+                if (index === '4') this.loadTopics();
+            },
+            logout() {
+                this.$confirm('确定退出登录？').then(() => {
+                    localStorage.removeItem('loginStatus');
+                    localStorage.removeItem('loginRole');
+                    localStorage.removeItem('loginUser');
+                    location.href = 'login.html';
+                });
+            },
+            async loadMessages() {
+                const res = await fetch(`${API_BASE}/api/messages?to_type=expert&to_id=${this.userInfo.id}`);
+                const json = await res.json();
+                if (json.code === 0) {
+                    this.consultMessages = json.data;
+                    this.unreadCount = json.data.filter(m => m.is_read == 0).length;
+                }
+            },
+            async loadOrders() {
+                const res = await fetch(`${API_BASE}/api/orders`);
+                const json = await res.json();
+                if (json.code === 0) {
+                    // 专家通过主题名关联订单（简化处理）
+                    this.myOrders = json.data.filter(o => o.topic && this.myTopics.some(t => t.title === o.topic));
+                    this.myOrderCount = this.myOrders.length;
+                }
+            },
+            async loadTopics() {
+                const res = await fetch(`${API_BASE}/api/topics`);
+                const json = await res.json();
+                if (json.code === 0) {
+                    this.myTopics = json.data.filter(t => t.expert === this.userInfo.name);
+                    this.myTopicCount = this.myTopics.length;
+                }
+            },
+            async sendReply() {
+                if (!this.replyContent) {
+                    this.$message.warning('请输入回复内容');
+                    return;
+                }
+                const res = await fetch(`${API_BASE}/api/messages`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        from_type: 'expert',
+                        from_id: this.userInfo.id,
+                        from_name: this.userInfo.name,
+                        to_type: 'member',
+                        to_id: this.replyTo.from_id,
+                        to_name: this.replyTo.from_name,
+                        title: '回复：' + this.replyTo.title,
+                        content: this.replyContent
+                    })
+                });
+                if ((await res.json()).code === 0) {
+                    this.$message.success('回复已发送');
+                    const msgId = this.replyTo.id;  // 先保存 id
+                    this.replyTo = null;
+                    this.replyContent = '';
+                    // 标记原消息为已读
+                    await fetch(`${API_BASE}/api/messages/${msgId}/read`, { method: 'PUT' });
+                    this.loadMessages();
+                }
+            },
+            openAddTopic() {
+                this.topicForm = { title: '' };
+                this.topicDialogVisible = true;
+            },
+            async saveTopic() {
+                if (!this.topicForm.title) {
+                    this.$message.warning('请输入主题标题');
+                    return;
+                }
+                const res = await fetch(`${API_BASE}/api/topics`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        title: this.topicForm.title,
+                        expert: this.userInfo.name,
+                        status: '草稿'
+                    })
+                });
+                if ((await res.json()).code === 0) {
+                    this.$message.success('主题已保存为草稿');
+                    this.topicDialogVisible = false;
+                    this.loadTopics();
+                }
+            },
+            async publishTopic(row) {
+                const res = await fetch(`${API_BASE}/api/topics/${row.id}`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ ...row, status: '已发布' })
+                });
+                if ((await res.json()).code === 0) {
+                    this.$message.success('主题已发布');
+                    this.loadTopics();
+                }
+            },
+            async withdrawTopic(row) {
+                const res = await fetch(`${API_BASE}/api/topics/${row.id}`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ ...row, status: '草稿' })
+                });
+                if ((await res.json()).code === 0) {
+                    this.$message.success('主题已撤回');
+                    this.loadTopics();
+                }
+            },
+            delTopic(id) {
+                this.$confirm('确定删除？').then(async () => {
+                    const res = await fetch(`${API_BASE}/api/topics/${id}`, { method: 'DELETE' });
+                    if ((await res.json()).code === 0) {
+                        this.$message.success('删除成功');
+                        this.loadTopics();
+                    }
+                });
+            },
+            async updateInfo() {
+                const res = await fetch(`${API_BASE}/api/experts/${this.userInfo.id}`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(this.editForm)
+                });
+                if ((await res.json()).code === 0) {
+                    this.$message.success('修改成功');
+                    this.userInfo = { ...this.editForm };
+                    localStorage.setItem('loginUser', JSON.stringify(this.userInfo));
+                }
+            },
+            async changePwd() {
+                if (this.pwdForm.newPwd !== this.pwdForm.confirmPwd) {
+                    this.$message.error('两次密码不一致');
+                    return;
+                }
+                if (this.pwdForm.oldPwd !== (this.userInfo.password || '123456')) {
+                    this.$message.error('原密码错误');
+                    return;
+                }
+                const res = await fetch(`${API_BASE}/api/experts/${this.userInfo.id}`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ ...this.editForm, password: this.pwdForm.newPwd })
+                });
+                if ((await res.json()).code === 0) {
+                    this.$message.success('密码修改成功，请重新登录');
+                    this.showPwdDialog = false;
+                    setTimeout(() => {
+                        localStorage.clear();
+                        location.href = 'login.html';
+                    }, 1500);
+                }
+            }
+        }
+    });
+</script>
+</body>
+</html>

@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>系统登录</title>
+    <link rel="stylesheet" href="https://cdn.bootcdn.net/ajax/libs/element-ui/2.15.13/theme-chalk/index.css">
+    <script src="https://cdn.bootcdn.net/ajax/libs/vue/2.6.14/vue.min.js"></script>
+    <script src="https://cdn.bootcdn.net/ajax/libs/element-ui/2.15.13/index.min.js"></script>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            height: 100vh;
+            background-image: url("bamboo-bg.jpg");
+            background-size: cover;
+            background-position: center;
+            background-repeat: no-repeat;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-family: "Helvetica Neue", Helvetica, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", Arial, sans-serif;
+        }
+        .login-box {
+            background: rgba(255, 255, 255, 0.95);
+            padding: 40px;
+            border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.2);
+            width: 420px;
+            min-height: 300px;
+        }
+        .title {
+            text-align: center;
+            font-size: 24px;
+            font-weight: bold;
+            color: #333;
+            margin-bottom: 35px;
+        }
+        /* 确保表单元素正确显示 */
+        .el-form-item {
+            margin-bottom: 25px;
+        }
+        .el-input__inner {
+            height: 42px;
+            line-height: 42px;
+        }
+        .el-button {
+            height: 42px;
+            font-size: 15px;
+        }
+    </style>
+<base target="_blank">
+</head>
+<body>
+<div id="app">
+    <div class="login-box">
+        <div class="title">互联网专家服务平台</div>
+        <el-form :model="form" label-width="80px" @submit.native.prevent>
+            <el-form-item label="账号">
+                <el-input 
+                    v-model="form.username" 
+                    placeholder="请输入账号"
+                    prefix-icon="el-icon-user"
+                    clearable>
+                </el-input>
+            </el-form-item>
+            <el-form-item label="密码">
+                <el-input 
+                    v-model="form.password" 
+                    type="password" 
+                    placeholder="请输入密码"
+                    prefix-icon="el-icon-lock"
+                    clearable
+                    @keyup.enter.native="login">
+                </el-input>
+            </el-form-item>
+            <el-form-item>
+                <el-button type="primary" style="width:100%" @click="login" :loading="loading">登录系统</el-button>
+            </el-form-item>
+        </el-form>
+
+    </div>
+</div>
+<script>
+    const API_BASE = 'http://localhost:3000';
+    new Vue({
+        el: '#app',
+        data() {
+            return {
+                form: { username: '', password: '' },
+                loading: false
+            }
+        },
+        methods: {
+            async login() {
+                if (!this.form.username || !this.form.password) {
+                    this.$message.warning('请输入账号和密码');
+                    return;
+                }
+                this.loading = true;
+                try {
+                    const res = await fetch(API_BASE + '/api/login', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(this.form)
+                    });
+                    const json = await res.json();
+                    if (json.code === 0) {
+                        var user = json.data;
+                        localStorage.setItem('loginStatus', 'ok');
+                        localStorage.setItem('loginRole', user.role);
+                        localStorage.setItem('loginUser', JSON.stringify(user));
+                        this.$message.success('登录成功，欢迎 ' + user.name);
+                        setTimeout(() => {
+                            if (user.role === 'admin') location.href = 'index.html';
+                            else if (user.role === 'member') location.href = 'member-system.html';
+                            else if (user.role === 'expert') location.href = 'expert-system.html';
+                        }, 800);
+                    } else {
+                        this.$message.error(json.msg || '登录失败');
+                    }
+                } catch (e) {
+                    this.$message.error('网络错误，请检查后端服务');
+                } finally {
+                    this.loading = false;
+                }
+            }
+        }
+    });
+</script>
+</body>
+</html>
