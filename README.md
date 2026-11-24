@@ -2,6 +2,18 @@
 
 基于 **Vue 2 + Element UI** 与 **Express + sql.js** 构建的互联网专家服务平台课程设计项目，包含管理控制台、会员中心、专家中心三端界面与统一登录体系。
 
+## 在线演示
+
+本项目提供了一个**免安装、免后端**的静态演示版，直接打开即可体验全部界面与交互：
+
+**https://2522081904.github.io/internet-expert-platform/**
+
+该版本位于 `docs/` 目录，由 GitHub Pages 托管。它将后端接口替换为浏览器 `localStorage` 持久化，数据字段与 `server/db.js` 的预置数据完全一致，因此无需启动 Node 服务即可完整走通三端流程。Vue、Element UI 与图标字体均已本地化到 `docs/vendor/`，断网也能正常打开。
+
+演示账号见下方[演示账号](#演示账号)一节，登录页提供一键填入按钮。
+
+> 如需真实的后端联动版本，请按[快速开始](#快速开始)启动 Express 服务后打开根目录的 HTML 页面。
+
 ## 功能概览
 
 | 端 | 页面 | 功能 |
@@ -32,7 +44,21 @@ expert-platform/
     ├── db.js              # sql.js 初始化、建表与预置数据
     ├── package.json
     └── package-lock.json
+
+docs/                      # 静态演示版（GitHub Pages 部署目录）
+├── index.html             # 单文件应用，含三端全部界面
+├── bamboo-bg.jpg
+└── vendor/                # 本地化的 Vue / Element UI / 图标字体
 ```
+
+## 静态演示版说明
+
+`docs/index.html` 是一个约 52 KB 的单文件应用，使用与后端无关的 `localStorage` 数据层：
+
+- **数据键**：`iep_static_demo_v1`，首次打开自动写入预置数据；清空该键即可恢复初始状态。
+- **登录**：在登录页校验账号密码，按角色（admin / member / expert）渲染不同的侧栏菜单与页面。
+- **移动端**：宽度小于 768px 时侧栏收起为抽屉菜单，通过顶部汉堡按钮唤出。
+- **离线可用**：所有前端依赖均在 `docs/vendor/` 内，无任何外部 CDN 请求。
 
 ## 快速开始
 
